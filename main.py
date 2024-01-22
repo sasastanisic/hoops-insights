@@ -1,16 +1,28 @@
-# This is a sample Python script.
+import requests
+from bs4 import BeautifulSoup
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+url = 'https://www.basketball-reference.com/leagues/NBA_2024_standings.html'
 
+response = requests.get(url)
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+if response.status_code == 200:
+    soup = BeautifulSoup(response.text, 'html.parser')
 
+    east_teams = soup.select('#confs_standings_E > tbody > tr.full_table > .left')
+    west_teams = soup.select('#confs_standings_W > tbody > tr.full_table > .left')
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+    for team in east_teams:
+        team_name = team.find('a').get_text(strip=True)
+        team_position = team.find('span', class_="seed").get_text(strip=True)
+        team_position = team_position[1:-1]
+        print(f"{team_position} {team_name}")
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    print('--------------------------------------------')
+
+    for team in west_teams:
+        team_name = team.find('a').get_text(strip=True)
+        team_position = team.find('span', class_="seed").get_text(strip=True)
+        team_position = team_position[1:-1]
+        print(f"{team_position} {team_name}")
+else:
+    print(f'Error: {response.status_code}')
