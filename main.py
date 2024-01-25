@@ -64,6 +64,7 @@ def mvp_tracker(url):
     soup = BeautifulSoup(response.text, 'html.parser')
 
     mvp_award_tracker = soup.select('#players tbody tr')
+    mvp_data = []
 
     for i, player_row in enumerate(mvp_award_tracker, start=1):
         player_data = player_row.find_all('td')
@@ -77,9 +78,23 @@ def mvp_tracker(url):
             'MVP probability': float(player_data[31].text.rstrip('%'))
         }
 
+        mvp_data.append(stats)
+
         print(f"{i} {stats['Player']}, {stats['Team']}")
         print(f"{stats['PPG']} PPG, {stats['RPG']} RPG, {stats['APG']} APG")
         print(f"MVP probability: {stats['MVP probability']}%\n")
+
+    return mvp_data
+
+
+def plot_mvp_probabilities(mvp_data, ax):
+    top_5_mvp_data = sorted(mvp_data, key=lambda x: x['MVP probability'], reverse=True)[:5]
+    labels = [data['Player'].split()[-1] for data in top_5_mvp_data]
+    probabilities = [data['MVP probability'] for data in top_5_mvp_data]
+
+    ax.pie(x=probabilities, labels=labels, startangle=90, counterclock=False,
+           wedgeprops=dict(width=0.4))
+    ax.set_title('MVP Tracker - Probabilities')
 
 
 def main():
@@ -111,16 +126,19 @@ def main():
 
         print('-------------------------------------------------------')
         print('MVP Tracker')
-        mvp_tracker(url_mvp_tracker)
+        mvp_data = mvp_tracker(url_mvp_tracker)
         print('-------------------------------------------------------')
 
-        fig, axes = plt.subplots(1, 2, figsize=(14, 7))
-        plt.subplots_adjust(bottom=0.2)
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        plt.subplots_adjust(hspace=0.4)
 
-        plot_teams(east_teams, 'Eastern', axes[0])
-        plot_teams(west_teams, 'Western', axes[1])
+        plot_teams(east_teams, 'Eastern', axes[0, 0])
+        plot_teams(west_teams, 'Western', axes[0, 1])
+        plot_mvp_probabilities(mvp_data, axes[1, 0])
 
         plt.get_current_fig_manager().set_window_title('Hoops Insights')
+        # plt.tight_layout()
+        plt.savefig("hoops_insights.png")
         plt.show()
     else:
         print(f'Error')
