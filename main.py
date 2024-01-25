@@ -1,5 +1,7 @@
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+from matplotlib import pyplot as plt
 
 
 class Team:
@@ -34,6 +36,29 @@ def process_table(table):
     return teams
 
 
+def plot_teams(teams, conference_name, ax):
+    data = {
+        'Team': [team.name.split()[-1] for team in teams],
+        'Wins': [int(team.wins) for team in teams],
+        'Losses': [int(team.losses) for team in teams]
+    }
+
+    df = pd.DataFrame(data)
+    bar_width = 0.5
+
+    ax.bar(range(len(df['Team'])), df['Wins'], color='lightblue', label='Wins', width=bar_width, align='center')
+    ax.bar(range(len(df['Team'])), df['Losses'], color='salmon', label='Losses', width=bar_width, align='edge')
+    # ax.bar(df['Team'], df['Wins'], color='lightblue', label='Wins', width=bar_width)
+    # ax.bar(df['Team'], df['Losses'], color='salmon', label='Losses', width=bar_width, bottom=df['Wins'])
+
+    ax.set_title(f'{conference_name} Conference Standings')
+    ax.set_ylabel('Games')
+    ax.set_xticks(range(len(df['Team'])))
+    ax.set_xticklabels(df['Team'], rotation=45, ha='right')
+    ax.tick_params(axis='x', which='both', pad=5)
+    ax.legend()
+
+
 def main():
     url = 'https://www.basketball-reference.com/leagues/NBA_2024.html'
 
@@ -58,6 +83,15 @@ def main():
         west_teams = process_table(west_table)
         for team in west_teams:
             print(team)
+
+        fig, axes = plt.subplots(1, 2, figsize=(14, 7))
+        plt.subplots_adjust(bottom=0.2)
+
+        plot_teams(east_teams, 'Eastern', axes[0])
+        plot_teams(west_teams, 'Western', axes[1])
+
+        plt.get_current_fig_manager().set_window_title('Hoops Insights')
+        plt.show()
     else:
         print(f'Error: {response.status_code}')
 
