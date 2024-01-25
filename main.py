@@ -59,12 +59,37 @@ def plot_teams(teams, conference_name, ax):
     ax.legend()
 
 
+def mvp_tracker(url):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    mvp_award_tracker = soup.select('#players tbody tr')
+
+    for i, player_row in enumerate(mvp_award_tracker, start=1):
+        player_data = player_row.find_all('td')
+
+        stats = {
+            'Player': player_data[0].text,
+            'Team': player_data[1].text,
+            'PPG': player_data[29].text,
+            'RPG': player_data[23].text,
+            'APG': player_data[24].text,
+            'MVP probability': float(player_data[31].text.rstrip('%'))
+        }
+
+        print(f"{i} {stats['Player']}, {stats['Team']}")
+        print(f"{stats['PPG']} PPG, {stats['RPG']} RPG, {stats['APG']} APG")
+        print(f"MVP probability: {stats['MVP probability']}%\n")
+
+
 def main():
     url = 'https://www.basketball-reference.com/leagues/NBA_2024.html'
+    url_mvp_tracker = 'https://www.basketball-reference.com/friv/mvp.html'
 
     response = requests.get(url)
+    response_mvp_tracker = requests.get(url_mvp_tracker)
 
-    if response.status_code == 200:
+    if response.status_code == 200 and response_mvp_tracker.status_code == 200:
         soup = BeautifulSoup(response.text, 'html.parser')
 
         standings = soup.select('.section_wrapper.data_grid.standings_confs')
@@ -84,6 +109,11 @@ def main():
         for team in west_teams:
             print(team)
 
+        print('-------------------------------------------------------')
+        print('MVP Tracker')
+        mvp_tracker(url_mvp_tracker)
+        print('-------------------------------------------------------')
+
         fig, axes = plt.subplots(1, 2, figsize=(14, 7))
         plt.subplots_adjust(bottom=0.2)
 
@@ -93,7 +123,7 @@ def main():
         plt.get_current_fig_manager().set_window_title('Hoops Insights')
         plt.show()
     else:
-        print(f'Error: {response.status_code}')
+        print(f'Error')
 
 
 if __name__ == "__main__":
