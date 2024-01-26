@@ -1,5 +1,6 @@
 import pandas as pd
 import requests
+import seaborn as sns
 from bs4 import BeautifulSoup
 from matplotlib import pyplot as plt
 
@@ -46,6 +47,7 @@ def plot_teams(teams, conference_name, ax):
     df = pd.DataFrame(data)
     bar_width = 0.5
 
+    sns.set(style='white')
     ax.bar(range(len(df['Team'])), df['Wins'], color='lightblue', label='Wins', width=bar_width, align='center')
     ax.bar(range(len(df['Team'])), df['Losses'], color='salmon', label='Losses', width=bar_width, align='edge')
     # ax.bar(df['Team'], df['Wins'], color='lightblue', label='Wins', width=bar_width)
@@ -92,6 +94,7 @@ def plot_mvp_probabilities(mvp_data, ax):
     labels = [data['Player'].split()[-1] for data in top_5_mvp_data]
     probabilities = [data['MVP probability'] for data in top_5_mvp_data]
 
+    ax.axis('equal')
     ax.pie(x=probabilities, labels=labels, startangle=90, counterclock=False,
            wedgeprops=dict(width=0.4))
     ax.set_title('MVP Tracker - Probabilities')
@@ -129,6 +132,7 @@ def main():
         mvp_data = mvp_tracker(url_mvp_tracker)
         print('-------------------------------------------------------')
 
+        sns.set(style='whitegrid')
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         plt.subplots_adjust(hspace=0.4)
 
