@@ -100,18 +100,60 @@ def plot_mvp_probabilities(mvp_data, ax):
     ax.set_title('MVP Tracker - Probabilities')
 
 
+def player_stats_total(url):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    player_name = soup.select_one('#meta div h1 span').text.strip()
+    totals_table = soup.select('#totals tbody tr')
+    player_stats_data = {}
+
+    for row in totals_table:
+        season = row.select_one('th[data-stat="season"] a').text
+        age = row.select_one('td[data-stat="age"]').text
+        team_element = row.select_one('td[data-stat="team_id"] a')
+
+        if team_element:
+            team = team_element.text
+        else:
+            team = row.select_one('td[data-stat="team_id"]').text
+
+        points = row.select_one('td[data-stat="pts"]').text
+        rebounds = row.select_one('td[data-stat="trb"]').text
+        assists = row.select_one('td[data-stat="ast"]').text
+
+        season_data = {
+            'Season': season,
+            'Age': age,
+            'Team': team,
+            'Points': points,
+            'Rebounds': rebounds,
+            'Assists': assists
+        }
+
+        if season_data["Season"] not in player_stats_data:
+            player_stats_data[season_data["Season"]] = season_data
+
+    print(f'{player_name}')
+    for season_data in player_stats_data.values():
+        print(f'Season {season_data["Season"]} in {season_data["Team"]}, {season_data["Points"]} PTS, '
+              f'{season_data["Rebounds"]} TRB, {season_data["Assists"]} AST, {season_data["Age"]} years old')
+
+
 def main():
     url = 'https://www.basketball-reference.com/leagues/NBA_2024.html'
     url_mvp_tracker = 'https://www.basketball-reference.com/friv/mvp.html'
+    url_player_stats = 'https://www.basketball-reference.com/players/j/jamesle01.html'
 
     response = requests.get(url)
     response_mvp_tracker = requests.get(url_mvp_tracker)
+    response_player_stats = requests.get(url_player_stats)
 
-    if response.status_code == 200 and response_mvp_tracker.status_code == 200:
+    if (response.status_code == 200 and response_mvp_tracker.status_code == 200 and
+            response_player_stats.status_code == 200):
         soup = BeautifulSoup(response.text, 'html.parser')
 
         standings = soup.select('.section_wrapper.data_grid.standings_confs')
-        # print(standings)
         east_table = standings[0].select_one('#confs_standings_E')
         west_table = standings[0].select_one('#confs_standings_W')
 
@@ -120,17 +162,20 @@ def main():
         for team in east_teams:
             print(team)
 
-        print('-------------------------------------------------------')
+        print('----------------------------------------------------------------------')
 
         print('Western Conference standings')
         west_teams = process_table(west_table)
         for team in west_teams:
             print(team)
 
-        print('-------------------------------------------------------')
+        print('----------------------------------------------------------------------')
         print('MVP Tracker')
         mvp_data = mvp_tracker(url_mvp_tracker)
-        print('-------------------------------------------------------')
+        print('----------------------------------------------------------------------')
+
+        player_stats_total(url_player_stats)
+        print('----------------------------------------------------------------------')
 
         sns.set(style='whitegrid')
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
