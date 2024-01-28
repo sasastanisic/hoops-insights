@@ -19,7 +19,17 @@ class Team:
                 f'{self.games_behind} GB')
 
 
-def process_table(table):
+class Player:
+    def __init__(self, name, team, points, rebounds, assists, mvp_probability):
+        self.name = name
+        self.team = team
+        self.points = points
+        self.rebounds = rebounds
+        self.assists = assists
+        self.mvp_probability = mvp_probability
+
+
+def teams_standings(table):
     rows = table.select('tbody tr.full_table')
     teams = []
 
@@ -37,7 +47,7 @@ def process_table(table):
     return teams
 
 
-def plot_teams(teams, conference_name, ax):
+def plot_teams_standings(teams, conference_name, ax):
     data = {
         'Team': [team.name.split()[-1] for team in teams],
         'Wins': [int(team.wins) for team in teams],
@@ -45,14 +55,10 @@ def plot_teams(teams, conference_name, ax):
     }
 
     df = pd.DataFrame(data)
-    bar_width = 0.5
 
     sns.set(style='white')
-    ax.bar(range(len(df['Team'])), df['Wins'], color='lightblue', label='Wins', width=bar_width, align='center')
-    ax.bar(range(len(df['Team'])), df['Losses'], color='salmon', label='Losses', width=bar_width, align='edge')
-    # ax.bar(df['Team'], df['Wins'], color='lightblue', label='Wins', width=bar_width)
-    # ax.bar(df['Team'], df['Losses'], color='salmon', label='Losses', width=bar_width, bottom=df['Wins'])
-
+    ax.bar(range(len(df['Team'])), df['Wins'], color='lightblue', label='Wins', width=0.5, align='center')
+    ax.bar(range(len(df['Team'])), df['Losses'], color='salmon', label='Losses', width=0.5, align='edge')
     ax.set_title(f'{conference_name} Conference Standings')
     ax.set_ylabel('Games')
     ax.set_xticks(range(len(df['Team'])))
@@ -71,28 +77,28 @@ def mvp_tracker(url):
     for i, player_row in enumerate(mvp_award_tracker, start=1):
         player_data = player_row.find_all('td')
 
-        stats = {
-            'Player': player_data[0].text,
-            'Team': player_data[1].text,
-            'PPG': player_data[29].text,
-            'RPG': player_data[23].text,
-            'APG': player_data[24].text,
-            'MVP probability': float(player_data[31].text.rstrip('%'))
-        }
+        player = Player(
+            name=player_data[0].text,
+            team=player_data[1].text,
+            points=player_data[29].text,
+            rebounds=player_data[23].text,
+            assists=player_data[24].text,
+            mvp_probability=float(player_data[31].text.rstrip('%'))
+        )
 
-        mvp_data.append(stats)
+        mvp_data.append(player)
 
-        print(f"{i} {stats['Player']}, {stats['Team']}")
-        print(f"{stats['PPG']} PPG, {stats['RPG']} RPG, {stats['APG']} APG")
-        print(f"MVP probability: {stats['MVP probability']}%\n")
+        print(f'{i} {player.name}, {player.team}')
+        print(f'{player.points} PPG, {player.rebounds} RPG, {player.assists} APG')
+        print(f'MVP probability: {player.mvp_probability}%\n')
 
     return mvp_data
 
 
 def plot_mvp_probabilities(mvp_data, ax):
-    top_5_mvp_data = sorted(mvp_data, key=lambda x: x['MVP probability'], reverse=True)[:5]
-    labels = [data['Player'].split()[-1] for data in top_5_mvp_data]
-    probabilities = [data['MVP probability'] for data in top_5_mvp_data]
+    top_5_mvp_data = sorted(mvp_data, key=lambda x: x.mvp_probability, reverse=True)[:5]
+    labels = [player.name.split()[-1] for player in top_5_mvp_data]
+    probabilities = [player.mvp_probability for player in top_5_mvp_data]
 
     ax.axis('equal')
     ax.pie(x=probabilities, labels=labels, startangle=90, counterclock=False,
@@ -111,13 +117,11 @@ def player_stats_total(url):
     for row in totals_table:
         season = row.select_one('th[data-stat="season"] a').text
         age = row.select_one('td[data-stat="age"]').text
+
         team_element = row.select_one('td[data-stat="team_id"] a')
+        team = team_element.text if team_element else row.select_one('td[data-stat="team_id"]').text
 
-        if team_element:
-            team = team_element.text
-        else:
-            team = row.select_one('td[data-stat="team_id"]').text
-
+        games = row.select_one('td[data-stat="g"]').text
         points = row.select_one('td[data-stat="pts"]').text
         rebounds = row.select_one('td[data-stat="trb"]').text
         assists = row.select_one('td[data-stat="ast"]').text
@@ -126,6 +130,7 @@ def player_stats_total(url):
             'Season': season,
             'Age': age,
             'Team': team,
+            'Games': games,
             'Points': points,
             'Rebounds': rebounds,
             'Assists': assists
@@ -136,53 +141,57 @@ def player_stats_total(url):
 
     print(f'{player_name}')
     for season_data in player_stats_data.values():
-        print(f'Season {season_data["Season"]} in {season_data["Team"]}, {season_data["Points"]} PTS, '
-              f'{season_data["Rebounds"]} TRB, {season_data["Assists"]} AST, {season_data["Age"]} years old')
+        print(f'Season {season_data["Season"]} in {season_data["Team"]}, {season_data["Games"]} games, '
+              f'{season_data["Points"]} PTS, {season_data["Rebounds"]} TRB, {season_data["Assists"]} AST, '
+              f'{season_data["Age"]} years old')
+
+
+def is_response_successful(response):
+    return response.status_code == 200
 
 
 def main():
-    url = 'https://www.basketball-reference.com/leagues/NBA_2024.html'
-    url_mvp_tracker = 'https://www.basketball-reference.com/friv/mvp.html'
-    url_player_stats = 'https://www.basketball-reference.com/players/j/jamesle01.html'
+    urls = {
+        'standings': 'https://www.basketball-reference.com/leagues/NBA_2024.html',
+        'mvp_tracker': 'https://www.basketball-reference.com/friv/mvp.html',
+        'player_stats': 'https://www.basketball-reference.com/players/d/duranke01.html'
+    }
 
-    response = requests.get(url)
-    response_mvp_tracker = requests.get(url_mvp_tracker)
-    response_player_stats = requests.get(url_player_stats)
+    responses = {key: requests.get(url) for key, url in urls.items()}
 
-    if (response.status_code == 200 and response_mvp_tracker.status_code == 200 and
-            response_player_stats.status_code == 200):
-        soup = BeautifulSoup(response.text, 'html.parser')
+    if all(is_response_successful(response) for response in responses.values()):
+        soup = BeautifulSoup(responses['standings'].text, 'html.parser')
 
         standings = soup.select('.section_wrapper.data_grid.standings_confs')
-        east_table = standings[0].select_one('#confs_standings_E')
         west_table = standings[0].select_one('#confs_standings_W')
-
-        print('Eastern Conference standings')
-        east_teams = process_table(east_table)
-        for team in east_teams:
-            print(team)
-
-        print('----------------------------------------------------------------------')
+        east_table = standings[0].select_one('#confs_standings_E')
 
         print('Western Conference standings')
-        west_teams = process_table(west_table)
+        west_teams = teams_standings(west_table)
         for team in west_teams:
             print(team)
 
-        print('----------------------------------------------------------------------')
-        print('MVP Tracker')
-        mvp_data = mvp_tracker(url_mvp_tracker)
-        print('----------------------------------------------------------------------')
+        print('------------------------------------------------------------------------------')
 
-        player_stats_total(url_player_stats)
-        print('----------------------------------------------------------------------')
+        print('Eastern Conference standings')
+        east_teams = teams_standings(east_table)
+        for team in east_teams:
+            print(team)
+
+        print('------------------------------------------------------------------------------')
+        print('MVP Tracker')
+        mvp_data = mvp_tracker(urls['mvp_tracker'])
+        print('------------------------------------------------------------------------------')
+
+        player_stats_total(urls['player_stats'])
+        print('------------------------------------------------------------------------------')
 
         sns.set(style='whitegrid')
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         plt.subplots_adjust(hspace=0.4)
 
-        plot_teams(east_teams, 'Eastern', axes[0, 0])
-        plot_teams(west_teams, 'Western', axes[0, 1])
+        plot_teams_standings(west_teams, 'Western', axes[0, 0])
+        plot_teams_standings(east_teams, 'Eastern', axes[0, 1])
         plot_mvp_probabilities(mvp_data, axes[1, 0])
 
         plt.get_current_fig_manager().set_window_title('Hoops Insights')
