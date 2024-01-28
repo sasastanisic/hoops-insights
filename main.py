@@ -112,7 +112,9 @@ def player_stats_total(url):
 
     player_name = soup.select_one('#meta div h1 span').text.strip()
     totals_table = soup.select('#totals tbody tr')
-    player_stats_data = {}
+    player_stats_data = {
+        'Player': player_name
+    }
 
     for row in totals_table:
         season = row.select_one('th[data-stat="season"] a').text
@@ -136,14 +138,38 @@ def player_stats_total(url):
             'Assists': assists
         }
 
-        if season_data["Season"] not in player_stats_data:
-            player_stats_data[season_data["Season"]] = season_data
+        if season_data['Season'] not in player_stats_data:
+            player_stats_data[season_data['Season']] = season_data
 
     print(f'{player_name}')
-    for season_data in player_stats_data.values():
+    for key, season_data in player_stats_data.items():
+        if key == 'Player':
+            continue
         print(f'Season {season_data["Season"]} in {season_data["Team"]}, {season_data["Games"]} games, '
               f'{season_data["Points"]} PTS, {season_data["Rebounds"]} TRB, {season_data["Assists"]} AST, '
               f'{season_data["Age"]} years old')
+
+    return player_stats_data
+
+
+def plot_player_stats_changes(player_stats_data, ax):
+    age = [data['Age'] for data in player_stats_data.values() if isinstance(data, dict)]
+    points = [int(data['Points']) for data in player_stats_data.values() if isinstance(data, dict)]
+    rebounds = [int(data['Rebounds']) for data in player_stats_data.values() if isinstance(data, dict)]
+    assists = [int(data['Assists']) for data in player_stats_data.values() if isinstance(data, dict)]
+
+    points_change = [points[i] - points[i - 1] if i > 0 else 0 for i in range(len(points))]
+    rebounds_change = [rebounds[i] - rebounds[i - 1] if i > 0 else 0 for i in range(len(rebounds))]
+    assists_change = [assists[i] - assists[i - 1] if i > 0 else 0 for i in range(len(assists))]
+
+    sns.set(style='white')
+    ax.plot(age, points_change, label='Points change', marker='o')
+    ax.plot(age, rebounds_change, label='Rebounds change', marker='o')
+    ax.plot(age, assists_change, label='Assists change', marker='o')
+    ax.set_title(f'{player_stats_data["Player"]} - Stats changes through years')
+    ax.set_xlabel('Age')
+    ax.set_ylabel('Change from previous year')
+    ax.legend()
 
 
 def is_response_successful(response):
@@ -155,6 +181,7 @@ def main():
         'standings': 'https://www.basketball-reference.com/leagues/NBA_2024.html',
         'mvp_tracker': 'https://www.basketball-reference.com/friv/mvp.html',
         'player_stats': 'https://www.basketball-reference.com/players/d/duranke01.html'
+        # 'player_stats': 'https://www.basketball-reference.com/players/a/antetgi01.html'
     }
 
     responses = {key: requests.get(url) for key, url in urls.items()}
@@ -183,20 +210,21 @@ def main():
         mvp_data = mvp_tracker(urls['mvp_tracker'])
         print('------------------------------------------------------------------------------')
 
-        player_stats_total(urls['player_stats'])
+        player_stats = player_stats_total(urls['player_stats'])
         print('------------------------------------------------------------------------------')
 
         sns.set(style='whitegrid')
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-        plt.subplots_adjust(hspace=0.4)
+        # plt.subplots_adjust(hspace=0.4)
 
         plot_teams_standings(west_teams, 'Western', axes[0, 0])
         plot_teams_standings(east_teams, 'Eastern', axes[0, 1])
         plot_mvp_probabilities(mvp_data, axes[1, 0])
+        plot_player_stats_changes(player_stats, axes[1, 1])
 
         plt.get_current_fig_manager().set_window_title('Hoops Insights')
-        # plt.tight_layout()
-        plt.savefig("hoops_insights.png")
+        plt.tight_layout()
+        plt.savefig('hoops_insights.png')
         plt.show()
     else:
         print(f'Error')
