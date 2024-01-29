@@ -108,8 +108,7 @@ def plot_mvp_probabilities(mvp_data, ax):
     probabilities = [player.mvp_probability for player in top_5_mvp_data]
 
     ax.axis('equal')
-    ax.pie(x=probabilities, labels=labels, startangle=90, counterclock=False,
-           wedgeprops=dict(width=0.4))
+    ax.pie(x=probabilities, labels=labels, startangle=90, counterclock=False, wedgeprops=dict(width=0.4))
     ax.set_title('MVP Tracker - Probabilities')
 
 
@@ -137,6 +136,28 @@ def win_shares(url):
         print(f'{i} {player_data["Player"]}, {player_data["Team"]} -> {player_data["Win Shares"]} WS')
 
     return players_data
+
+
+def plot_win_shares(players_data, ax):
+    top_players = sorted(players_data, key=lambda x: x['Win Shares'], reverse=True)[:10]
+    colors = ['orange' if i == 0 else 'navy' for i in range(len(top_players))]
+
+    formatted_player_names = []
+    for player in top_players:
+        last_name = player['Player'].split()[-1]
+        if last_name == 'Gilgeous-Alexander':
+            formatted_player_names.append('SGA')
+        elif last_name == 'Antetokounmpo':
+            formatted_player_names.append('Giannis')
+        else:
+            formatted_player_names.append(last_name)
+
+    sns.set(style='white')
+    ax.bar(range(len(top_players)), [player['Win Shares'] for player in top_players], color=colors)
+    ax.set_title('Win Shares Leaders')
+    ax.set_ylabel('Win Shares')
+    ax.set_xticks(range(len(top_players)))
+    ax.set_xticklabels(formatted_player_names)
 
 
 def player_stats_total(url):
@@ -265,7 +286,7 @@ def main():
         print('------------------------------------------------------------------------------')
 
         print('Win Shares leaders')
-        win_shares(urls['win_shares'])
+        players_win_shares = win_shares(urls['win_shares'])
         print('------------------------------------------------------------------------------')
 
         player_stats = player_stats_total(urls['player_stats'])
@@ -277,10 +298,11 @@ def main():
         plot_teams_standings(west_teams, 'Western', axes_one[0, 0])
         plot_teams_standings(east_teams, 'Eastern', axes_one[0, 1])
         plot_mvp_probabilities(mvp_data, axes_one[1, 0])
+        plot_win_shares(players_win_shares, axes_one[1, 1])
 
         plt.get_current_fig_manager().set_window_title('Hoops Insights')
         plt.tight_layout()
-        plt.savefig('plots/first_figure.png')
+        # plt.savefig('plots/first_figure.png')
         plt.show()
 
         sns.set(style='whitegrid')
@@ -291,7 +313,7 @@ def main():
 
         plt.get_current_fig_manager().set_window_title('Hoops Insights')
         plt.tight_layout()
-        plt.savefig('plots/second_figure.png')
+        # plt.savefig('plots/second_figure.png')
         plt.show()
     else:
         print(f'Error')
