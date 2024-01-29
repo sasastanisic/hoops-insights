@@ -152,20 +152,39 @@ def player_stats_total(url):
     return player_stats_data
 
 
-def plot_player_stats_changes(player_stats_data, ax):
+def data_for_plot(player_stats_data):
     age = [data['Age'] for data in player_stats_data.values() if isinstance(data, dict)]
     points = [int(data['Points']) for data in player_stats_data.values() if isinstance(data, dict)]
     rebounds = [int(data['Rebounds']) for data in player_stats_data.values() if isinstance(data, dict)]
     assists = [int(data['Assists']) for data in player_stats_data.values() if isinstance(data, dict)]
 
+    return age, points, rebounds, assists
+
+
+def plot_player_stats(player_stats_data, ax):
+    age, points, rebounds, assists = data_for_plot(player_stats_data)
+
+    sns.set(style='dark')
+    ax.plot(age, points, label='Points', marker='o', color='salmon')
+    ax.plot(age, rebounds, label='Rebounds', marker='o', color='darkblue')
+    ax.plot(age, assists, label='Assists', marker='o', color='orange')
+    ax.set_title(f'{player_stats_data["Player"]} - Stats through years')
+    ax.set_xlabel('Age')
+    ax.set_ylabel('Total')
+    ax.legend()
+
+
+def plot_player_stats_changes(player_stats_data, ax):
+    age, points, rebounds, assists = data_for_plot(player_stats_data)
+
     points_change = [points[i] - points[i - 1] if i > 0 else 0 for i in range(len(points))]
     rebounds_change = [rebounds[i] - rebounds[i - 1] if i > 0 else 0 for i in range(len(rebounds))]
     assists_change = [assists[i] - assists[i - 1] if i > 0 else 0 for i in range(len(assists))]
 
-    sns.set(style='white')
-    ax.plot(age, points_change, label='Points change', marker='o')
-    ax.plot(age, rebounds_change, label='Rebounds change', marker='o')
-    ax.plot(age, assists_change, label='Assists change', marker='o')
+    sns.set(style='dark')
+    ax.plot(age, points_change, '--', label='Points change')
+    ax.plot(age, rebounds_change, '--', label='Rebounds change')
+    ax.plot(age, assists_change, '--', label='Assists change')
     ax.set_title(f'{player_stats_data["Player"]} - Stats changes through years')
     ax.set_xlabel('Age')
     ax.set_ylabel('Change from previous year')
@@ -180,7 +199,8 @@ def main():
     urls = {
         'standings': 'https://www.basketball-reference.com/leagues/NBA_2024.html',
         'mvp_tracker': 'https://www.basketball-reference.com/friv/mvp.html',
-        'player_stats': 'https://www.basketball-reference.com/players/d/duranke01.html'
+        'player_stats': 'https://www.basketball-reference.com/players/j/jamesle01.html'
+        # 'player_stats': 'https://www.basketball-reference.com/players/d/duranke01.html'
         # 'player_stats': 'https://www.basketball-reference.com/players/a/antetgi01.html'
     }
 
@@ -214,17 +234,26 @@ def main():
         print('------------------------------------------------------------------------------')
 
         sns.set(style='whitegrid')
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-        # plt.subplots_adjust(hspace=0.4)
+        fig_one, axes_one = plt.subplots(2, 2, figsize=(14, 10))
 
-        plot_teams_standings(west_teams, 'Western', axes[0, 0])
-        plot_teams_standings(east_teams, 'Eastern', axes[0, 1])
-        plot_mvp_probabilities(mvp_data, axes[1, 0])
-        plot_player_stats_changes(player_stats, axes[1, 1])
+        plot_teams_standings(west_teams, 'Western', axes_one[0, 0])
+        plot_teams_standings(east_teams, 'Eastern', axes_one[0, 1])
+        plot_mvp_probabilities(mvp_data, axes_one[1, 0])
 
         plt.get_current_fig_manager().set_window_title('Hoops Insights')
         plt.tight_layout()
-        plt.savefig('hoops_insights.png')
+        plt.savefig('plots/first_figure.png')
+        plt.show()
+
+        sns.set(style='whitegrid')
+        fig_two, axes_two = plt.subplots(1, 2, figsize=(12, 6))
+
+        plot_player_stats(player_stats, axes_two[0])
+        plot_player_stats_changes(player_stats, axes_two[1])
+
+        plt.get_current_fig_manager().set_window_title('Hoops Insights')
+        plt.tight_layout()
+        plt.savefig('plots/second_figure.png')
         plt.show()
     else:
         print(f'Error')
