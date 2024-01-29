@@ -113,6 +113,32 @@ def plot_mvp_probabilities(mvp_data, ax):
     ax.set_title('MVP Tracker - Probabilities')
 
 
+def win_shares(url):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    win_shares_data = soup.select('#leaders_ws .columns tr')
+    players_data = []
+
+    for i, player_row in enumerate(win_shares_data, start=1):
+        player_info = player_row.select('td.who')[0]
+        player_name = player_info.a.get_text(strip=True)
+        team = player_info.span.get_text(strip=True)
+        win_shares_value = float(player_row.select('td.value')[0].get_text(strip=True))
+
+        player_data = {
+            'Player': player_name,
+            'Team': team,
+            'Win Shares': win_shares_value
+        }
+
+        players_data.append(player_data)
+
+        print(f'{i} {player_data["Player"]}, {player_data["Team"]} -> {player_data["Win Shares"]} WS')
+
+    return players_data
+
+
 def player_stats_total(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -206,6 +232,7 @@ def main():
     urls = {
         'standings': 'https://www.basketball-reference.com/leagues/NBA_2024.html',
         'mvp_tracker': 'https://www.basketball-reference.com/friv/mvp.html',
+        'win_shares': 'https://www.basketball-reference.com/leagues/NBA_2024_leaders.html',
         'player_stats': 'https://www.basketball-reference.com/players/j/jamesle01.html'
         # 'player_stats': 'https://www.basketball-reference.com/players/d/duranke01.html'
         # 'player_stats': 'https://www.basketball-reference.com/players/a/antetgi01.html'
@@ -235,6 +262,10 @@ def main():
         print('------------------------------------------------------------------------------')
         print('MVP Tracker')
         mvp_data = mvp_tracker(urls['mvp_tracker'])
+        print('------------------------------------------------------------------------------')
+
+        print('Win Shares leaders')
+        win_shares(urls['win_shares'])
         print('------------------------------------------------------------------------------')
 
         player_stats = player_stats_total(urls['player_stats'])
