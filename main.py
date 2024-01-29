@@ -56,9 +56,16 @@ def plot_teams_standings(teams, conference_name, ax):
 
     df = pd.DataFrame(data)
 
+    wins_colors = ['lightblue' for _ in range(len(df['Team']))]
+    losses_colors = ['salmon' for _ in range(len(df['Team']))]
+
+    for i in range(6, 10):
+        wins_colors[i] = 'blue'
+        losses_colors[i] = 'red'
+
     sns.set(style='white')
-    ax.bar(range(len(df['Team'])), df['Wins'], color='lightblue', label='Wins', width=0.5, align='center')
-    ax.bar(range(len(df['Team'])), df['Losses'], color='salmon', label='Losses', width=0.5, align='edge')
+    ax.bar(range(len(df['Team'])), df['Wins'], color=wins_colors, label='Wins', width=0.5, align='center')
+    ax.bar(range(len(df['Team'])), df['Losses'], color=losses_colors, label='Losses', width=0.5, align='edge')
     ax.set_title(f'{conference_name} Conference Standings')
     ax.set_ylabel('Games')
     ax.set_xticks(range(len(df['Team'])))
